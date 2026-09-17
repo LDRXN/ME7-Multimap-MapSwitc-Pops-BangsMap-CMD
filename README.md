@@ -419,3 +419,44 @@ If you test the builder on another Bosch ME7.5 software version, please include 
 Open Source.
 
 See the repository license for details.
+
+
+
+<h2 align="center">❤️ Want to say thank you?</h2>
+
+<p align="center">
+If this project helped you and you would like to show your appreciation,<br>
+<strong>there is no need to support me financially.</strong>
+</p>
+
+<p align="center">
+Instead, if you are willing and able, please consider supporting organizations<br>
+that help children and people fighting serious illnesses.
+</p>
+
+<table align="center">
+<tr>
+<td align="center">
+
+<a href="https://www.siepomaga.pl/">
+<img src="https://img.shields.io/badge/SUPPORT-SIEPOMAGA.PL-ff4f81?style=for-the-badge" alt="Support Siepomaga.pl">
+</a>
+
+</td>
+<td align="center">
+
+<a href="https://cancerfighters.pl/">
+<img src="https://img.shields.io/badge/SUPPORT-CANCER%20FIGHTERS-e30613?style=for-the-badge" alt="Support Cancer Fighters">
+</a>
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+<strong>Thank you for using my project. ❤️</strong><br><br>
+If it helped you, consider helping someone who truly needs it.<br>
+Even a small contribution can make a meaningful difference.
+</p>
+
+---
