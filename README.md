@@ -420,7 +420,7 @@ Open Source.
 
 See the repository license for details.
 
-
+---
 
 <h2 align="center">❤️ Want to say thank you?</h2>
 
