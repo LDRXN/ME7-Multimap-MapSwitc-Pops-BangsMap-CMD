@@ -422,6 +422,29 @@ See the repository license for details.
 
 ---
 
+Software License
+
+Copyright © 2026 LDRXN
+
+This software is free and open-source software distributed under the terms of the GNU General Public License, version 3 (GNU GPL v3).
+
+Every user is permitted to:
+
+- use the software free of charge for private and commercial purposes;
+- copy and redistribute the original software;
+- access the source code;
+- study and modify the source code;
+- create modified versions of the software;
+- distribute modified versions of the software.
+
+When publicly distributing a modified version of the software, the applicable copyright and license notices must be preserved and the corresponding source code must be made available under the terms of the GNU GPL v3.
+
+The software is provided “AS IS”, without warranty, to the extent permitted by applicable law. LDRXN provides no warranty regarding the software's fitness for a particular purpose or error-free operation.
+
+This notice is a summary of the licensing terms. The complete GNU General Public License version 3 supplied with the software constitutes the applicable license terms.
+
+---
+
 <h2 align="center">❤️ Want to say thank you?</h2>
 
 <p align="center">
