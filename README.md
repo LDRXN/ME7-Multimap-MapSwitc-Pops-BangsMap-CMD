@@ -1,6 +1,6 @@
 # 🔀 Bosch ME7.5 MultiMap / MapSwitch + Pops & Bangs CMD
 
-### Automatic Map Detection • 2–4 Banks • Cruise / Brake Switching • Pops & Bangs Maps • MIL Confirmation • Automatic XDF Generation
+### Automatic Map Detection • 2–4 Banks • Cruise / Brake Switching • Pops & Bangs Maps • RPM Bank Indication • Automatic XDF Generation
 
 Open-source command-line tool for creating **MultiMap / MapSwitch firmware for Bosch ME7.5 1MB ECUs**, extended with **runtime-switchable Pops & Bangs calibration maps**.
 
@@ -18,7 +18,7 @@ The application automatically analyzes the ECU binary, detects the required cali
 * 🔀 Runtime map switching
 * 💥 **Pops & Bangs maps independently switchable for every bank**
 * 🎛️ Two selectable switching methods
-* 💡 MIL / Check Engine confirmation of selected bank
+* 📈 Tachometer / RPM indication of selected bank
 * 📋 Automatic bank layout generation
 * 🧩 Automatic selector installation
 * 💾 Automatic output BIN creation
@@ -35,14 +35,14 @@ The application automatically analyzes the ECU binary, detects the required cali
 
 The builder automatically searches for the main calibrations required by the MultiMap system:
 
-| Map         | Description                            |
-| ----------- | -------------------------------------- |
-| **LAMFA**   | Lambda enrichment                      |
-| **KFZW**    | Ignition timing                        |
-| **KFZW2**   | Secondary ignition timing              |
-| **LDRXN**   | Maximum specified load                 |
+| Map | Description |
+| --- | --- |
+| **LAMFA** | Lambda enrichment |
+| **KFZW** | Ignition timing |
+| **KFZW2** | Secondary ignition timing |
+| **LDRXN** | Maximum specified load |
 | **LDRXNZK** | Maximum specified load – knock related |
-| **KRKTE**   | Injector constant                      |
+| **KRKTE** | Injector constant |
 
 Required axes and associated calibration data are handled automatically.
 
@@ -54,12 +54,12 @@ This version additionally supports **runtime switching of Pops & Bangs calibrati
 
 Each MultiMap bank receives its own independent set of:
 
-| Map           | Description                                        |
-| ------------- | -------------------------------------------------- |
-| **KFZWMN**    | Minimum ignition angle                             |
-| **KFNWEGM**   | Overrun / fuel-cut related calibration             |
-| **KFTVSA**    | Overrun delay / exhaust-related timing calibration |
-| **KFTVSAKAT** | Catalyst-related overrun timing calibration        |
+| Map | Description |
+| --- | --- |
+| **KFZWMN** | Minimum ignition angle |
+| **KFNWEGM** | Overrun / fuel-cut related calibration |
+| **KFTVSA** | Overrun delay / exhaust-related timing calibration |
+| **KFTVSAKAT** | Catalyst-related overrun timing calibration |
 
 This means Pops & Bangs behavior can be configured independently for every bank.
 
@@ -162,16 +162,24 @@ Bank 1 → Bank 2 → Bank 3 → Bank 4 → Bank 1
 
 ---
 
-# 💡 MIL Bank Confirmation
+# 📈 RPM Bank Indication
 
-After a successful bank change, the **MIL / Check Engine light** confirms the currently selected calibration bank.
+After a successful bank change, the **tachometer temporarily indicates the currently selected calibration bank**.
 
 ```text
-Bank 1 → 1 blink
-Bank 2 → 2 blinks
-Bank 3 → 3 blinks
-Bank 4 → 4 blinks
+Bank 1 → 1000 RPM
+Bank 2 → 2000 RPM
+Bank 3 → 3000 RPM
+Bank 4 → 4000 RPM
 ```
+
+The indication is shown for approximately **2 seconds**.
+
+After that, the tachometer automatically returns to displaying the **real engine RPM**.
+
+The MultiMap runtime does **not** change the actual engine speed. It only temporarily changes the RPM value displayed by the instrument cluster.
+
+This allows the active bank to be identified directly on the factory tachometer without using the MIL / Check Engine light or any additional display.
 
 ---
 
@@ -213,11 +221,16 @@ Example working directory:
 ```text
 ME7-Multimap-MapSwitch-Pops-BangsMap-CMD/
 │
-├── MapSwitch_ME7_Pops.exe
+├── MapSwitch_ME7_Pops_V2.exe
+├── MapSwitch_ME7_Pops_V2.py
 ├── ME7Info.exe
 ├── dump.bin
 └── dump.ecu
 ```
+
+`MapSwitch_ME7_Pops_V2.exe` is the compiled Windows executable.
+
+`MapSwitch_ME7_Pops_V2.py` is the Python source version.
 
 ---
 
@@ -232,7 +245,7 @@ ME7Info.exe dump.bin
 Then start the MultiMap builder:
 
 ```bash
-MapSwitch_ME7_Pops.exe dump.bin
+MapSwitch_ME7_Pops_V2.exe dump.bin
 ```
 
 The application automatically finds:
@@ -331,7 +344,7 @@ Original ME7.5 BIN
       .ecu
         │
         ▼
-MapSwitch_ME7_Pops.exe
+MapSwitch_ME7_Pops_V2.exe
         │
         ├── Map detection
         ├── Pops map detection
@@ -339,6 +352,7 @@ MapSwitch_ME7_Pops.exe
         ├── Runtime installation
         ├── Selector installation
         ├── Pops selectors
+        ├── RPM bank indication
         ├── XDF generation
         └── CSV report
         │
@@ -397,6 +411,7 @@ Automatic map detection
 Compatibility between ME7.5 software versions
 MultiMap selector generation
 Pops & Bangs selector generation
+RPM bank indication
 Runtime validation
 Automatic XDF generation
 Safety checks before firmware creation
@@ -422,7 +437,7 @@ See the repository license for details.
 
 ---
 
-Software License
+## Software License
 
 Copyright © 2026 LDRXN
 
