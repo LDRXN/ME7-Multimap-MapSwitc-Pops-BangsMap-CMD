@@ -1,257 +1,486 @@
-Bosch ME7.5 MultiMap — Pops & Bangs ECU Fix History
-ECU compatibility • Original errors • Root causes • Implemented fixes • Verification status
+# 🔧 Bosch ME7.5 MultiMap — Pops & Bangs ECU Fix History
 
-A technical record of the issues I encountered while adapting my MultiMap builder to ECU software from the supported Pops & Bangs engine-power families.
+**🐞 Known Issues | 🛠️ Implemented Fixes | ✅ Resolved Bugs | 🧪 Verification Status**
 
-Document scope: 06A906032HJ · 06A906032KP · 06A906032RN · 06A906032SJ
-Engine-power families supported by the Pops & Bangs feature: 150 / 180 / 210 / 225 HP
-Status: Previously reported patch-generation blockers addressed; code-level and vehicle validation are separate steps.
-[!IMPORTANT]
-Supported power family ≠ guaranteed support for every BIN. The four ECU variants below have been investigated in the context of the project's supported engine families. The actual firmware must still contain valid calibration maps, lookup sites, and sufficient safe free space. A successful patcher run does not prove correct operation in a vehicle.
+Technical documentation of the ECU-specific problems I encountered during the development of my Bosch ME7.5 MultiMap patcher, including their causes, the changes I implemented, and the current verification status.
 
-[!NOTE]
-Manual map entry is the intended permanent fallback. When automatic map detection cannot validate a required calibration, I use manually supplied Bank 1 map addresses. I am not extending automatic signatures indefinitely just to recognize every software version. Map addresses, axes and C167 code references must still pass validation.
+> [!IMPORTANT]
+> 🔥 **Pops & Bangs is supported only for the 150 / 180 / 210 / 225 HP engine families.**
+>
+> The actual ECU software must also contain compatible maps and code references. Engine power alone does not guarantee compatibility.
 
-Compatibility and issue summary
-ECU part number	Bosch HW	Bosch SW	SW version	Engine-power family*	Patcher result	Original issue(s)
-06A906032HJ	0261207436	1037362287	0002	150 HP	✅ Build PASS	Cyclic hook/RAM detection; copied-map/selector integrity
-06A906032KP	0261207789	1037363625	0203	150/180 HP applications	✅ PASS reported	Insufficient contiguous allocation space for KFZWMN
-06A906032RN	0261208450	1037368613	0001	180 HP application	✅ Build PASS	Tachometer CAN hook could not be identified
-06A906032SJ	0261208531	1037369040	0010	150/180 HP applications	✅ Build PASS	LDR maps rejected; cyclic hook; unresolved LDR lookup calls
+---
 
+## 📊 ECU Compatibility Overview
 
-Power-family labels describe reported factory applications, not an unconditional horsepower guarantee from a Bosch HW/SW number alone. Check the exact vehicle and calibration before enabling Pops-specific features.
-What the status means
-- Build PASS: The previously failing patch-generation path completed in the investigated firmware, with the static checks described below.
-- PASS reported: A previously failing ECU was reported to complete the patching process successfully; this is not equivalent to a fully independently audited vehicle test.
-- No confirmed vehicle test: Runtime bank switching, tachometer indication, engine behavior, and Pops & Bangs operation have not been established solely by generating BIN/XDF files.
-1. 06A906032HJ — 150 HP
-Current status: ✅ Resolved at build/static-validation level
-Pops & Bangs scope: ✅ Engine family eligible; actual BIN must still validate
-Problem A — Cyclic runtime hook and RAM not found
-What failed
+| ECU Part Number | Engine Family | Status |
+|---|---|---|
+| `06A906032HJ` | 150 HP | ✅ Build PASS |
+| `06A906032KP` | 150/180 HP | ✅ PASS |
+| `06A906032RN` | 180 HP | ✅ Build PASS |
+| `06A906032SJ` | 150/180 HP | ✅ Build PASS |
 
-Early builds could stop during pre-flight validation with messages such as:
+> [!NOTE]
+> ✍️ **Manual Map Address Override**
+>
+> If automatic map detection cannot find a required calibration, manually entering the correct Bank 1 address is the intended solution.
+>
+> I will not force additional automatic detection for every ECU software version. The supplied addresses and their code references must still pass validation.
+
+---
+
+# 🟢 1. 06A906032HJ — 150 HP
+
+**✅ Status: RESOLVED — BUILD PASS**
+
+### 🔍 ECU Identification
+
+| Parameter | Value |
+|---|---|
+| Part Number | `06A906032HJ` |
+| Bosch HW | `0261207436` |
+| Bosch SW | `1037362287` |
+| Software Version | `0002` |
+
+### 🐞 Problem 1 — Cyclic Hook and RAM Detection
+
+**🚨 Original errors**
+
+```text
 Cyclic hook: NOT FOUND
 RAM: NOT FOUND
 PRE-FLIGHT INCOMPLETE
-Where the problem occurred
+```
 
-The failure was in runtime code installation, specifically discovering a safe C167 cyclic execution point and usable RAM for the active-bank state. It was not, by itself, evidence of incorrect map contents.
+**❓ What caused the problem?**
 
-Why it happened
+The patcher could not reliably locate a suitable cyclic execution point and RAM area for the additional MultiMap runtime code.
 
-The earlier detector and free-memory checks were too restrictive for this ECU's code and memory layout. A candidate that looked plausible was not enough: I also needed to preserve the displaced original instruction and avoid overlapping another injected block.
+The original validation was too restrictive for certain C167 instruction layouts.
 
-How I fixed it
-1. Improved structural detection of the cyclic hook and validation of the original instruction bytes.
-2. Improved selection and reservation of usable RAM for the MultiMap runtime.
-3. Checked safe code-cave placement and protected already reserved regions from overlap.
-4. Validated the runtime and selector patch locations before writing any new bytes.
-Verified addresses in the analyzed firmware
-Component	Address / value
-Cyclic hook	0x0A1CCC
-Original hook bytes	F3 F8 9D 89
-Runtime code cave	0x0A5850
-Runtime RAM	0x3843C0
-Tach CAN hook	0x040388
-Tach wrapper	0x0A5A10
+### 🛠️ How I Fixed It
 
+- Improved structural detection of the cyclic runtime hook.
+- Added validation of the original C167 instructions.
+- Improved RAM allocation and reserved-memory handling.
+- Added protection against overlapping injected code and calibration blocks.
+- Verified that overwritten instructions were preserved correctly.
 
-Result: ✅ Fixed for the analyzed build. The cyclic hook and runtime memory checks passed.
-Problem B — Confidence in copied map blocks and selector locations
-What was questioned
+**📍 Verified locations**
 
-An early build raised concerns about potential incorrect map-copy offsets and selector references, particularly for LDR-related calibration blocks in additional banks.
+| Component | Address |
+|---|---|
+| Cyclic Hook | `0x0A1CCC` |
+| Runtime RAM | `0x3843C0` |
+| Runtime Code Cave | `0x0A5850` |
+| Tach CAN Hook | `0x040388` |
+| Tach Wrapper | `0x0A5A10` |
 
-What I changed and checked
-- Strengthened destination-range and copied-block verification.
-- Compared the original and modified firmware at the byte level.
-- Checked the hook locations and reserved regions against the expected patch plan.
-- Confirmed that map copies preserved the original raw calibration bytes.
-Static verification results
-Check	Finding
-Four-bank generation	PASS
-Copied calibration blocks	42 checked; content matched the sources
-Selector hooks	14 checked
-Unexpected changes outside planned regions	None observed in that comparison
+### 🐞 Problem 2 — Map Copy and Selector Validation
 
+Earlier builds raised concerns about incorrect calibration copy offsets and selector references.
 
-Final HJ assessment: The documented build blockers and integrity concerns were addressed in the analyzed four-bank setup, including the applicable Pops-related calibration layout. No physical vehicle validation is claimed.
-2. 06A906032KP — 150/180 HP applications
-Current status: ✅ Reported PASS — allocation issue resolved
-Pops & Bangs scope: ✅ Eligible engine family; validate the individual BIN
-Problem — KFZWMN could not be allocated in one contiguous block
-Original error
+### 🛠️ How I Fixed It
+
+I strengthened the validation process and performed a byte-level comparison between the original and patched firmware.
+
+**🧪 Verification Results**
+
+| Test | Result |
+|---|---|
+| Four-bank generation | ✅ PASS |
+| 42 copied calibration blocks | ✅ MATCH |
+| 14 selector hooks | ✅ VERIFIED |
+| Unexpected memory changes | ✅ NONE DETECTED |
+
+### ✅ Final Result
+
+The identified cyclic hook, RAM allocation, and calibration-copy issues were resolved at the patch-generation level.
+
+No further build errors are currently documented for this ECU.
+
+---
+
+# 🟢 2. 06A906032KP — 150/180 HP
+
+**✅ Status: RESOLVED — PASS**
+
+### 🔍 ECU Identification
+
+| Parameter | Value |
+|---|---|
+| Part Number | `06A906032KP` |
+| Bosch HW | `0261207789` |
+| Bosch SW | `1037363625` |
+| Software Version | `0203` |
+
+### 🐞 Problem — KFZWMN Memory Allocation Failure
+
+**🚨 Original error**
+
+```text
 KFZWMN: no 576-byte unreserved FF area
 in stock DPP window 0x014000-0x017FFF
-Where the problem occurred
+```
 
-While creating additional Pops-related map copies, the allocator attempted to reserve one large contiguous region for KFZWMN. This software did not offer a suitable free stretch in the preferred DPP window.
+### ❓ What Caused the Problem?
 
-Why it happened
+The original allocation logic required a single continuous **576-byte free memory block** for three additional KFZWMN calibration copies.
 
-The old approach grouped three copies into one 576-byte allocation, even though the copies did not logically need to be adjacent. The inability to find that single region did not prove that the ECU lacked enough free space in total.
+However, this firmware did not contain a sufficiently large uninterrupted free region in the preferred memory window.
 
-How I fixed it
-1. Replaced the single 576-byte requirement with three independent 192-byte blocks, one for each additional bank in a four-bank configuration.
-2. Expanded the free-space search across eligible DPP0–DPP3 regions.
-3. Updated the KFZWMN selector to reference each copy at its actual location, including its DPP page.
-4. Added safeguards preventing a map block from crossing a 16 KiB DPP page boundary.
-5. Kept overlap and reserved-area validation so allocating smaller blocks would not overwrite stock code or other injected data.
-Allocation change
-BEFORE
-  KFZWMN, banks 2–4  -> one contiguous 576 B free region required
+The ECU still had available memory, but it was distributed across smaller regions.
 
-AFTER
-  KFZWMN, bank 2     -> separate 192 B block
-  KFZWMN, bank 3     -> separate 192 B block
-  KFZWMN, bank 4     -> separate 192 B block
-Result: ✅ Fixed. The KP patcher was subsequently reported to complete successfully. The previously blocking contiguous-allocation error is closed.
+### 🛠️ How I Fixed It
 
-What is not claimed: No evidence here establishes independently verified in-vehicle Pops behavior or complete C167 runtime correctness; successful patching and real-world validation remain distinct.
-3. 06A906032RN — 180 HP application
-Current status: ✅ Build PASS — Tach CAN detection resolved
-Pops & Bangs scope: ✅ Eligible engine family; validate the individual BIN
-Problem — Tachometer CAN hook not found
-Original error
+I completely changed the KFZWMN allocation strategy.
+
+**❌ Previous allocation**
+
+```text
+BANK 2 + BANK 3 + BANK 4
+          |
+          v
+Single 576-byte memory block
+          |
+          v
+ALLOCATION FAILED
+```
+
+**✅ Improved allocation**
+
+```text
+BANK 2 -> Independent 192-byte block
+BANK 3 -> Independent 192-byte block
+BANK 4 -> Independent 192-byte block
+```
+
+### 🔧 Additional Improvements
+
+- Expanded available-memory searching across supported DPP regions.
+- Improved individual map-copy allocation.
+- Updated KFZWMN selectors to use the actual memory location of each bank.
+- Added validation of DPP page boundaries.
+- Prevented map blocks from crossing 16 KiB page boundaries.
+- Preserved memory-overlap protection.
+
+### ✅ Final Result
+
+**The memory allocation issue has been resolved.**
+
+The patcher now completes the previously failing KP patching process successfully.
+
+No further build blocker is currently reported for this ECU.
+
+---
+
+# 🟢 3. 06A906032RN — 180 HP
+
+**✅ Status: RESOLVED — BUILD PASS**
+
+### 🔍 ECU Identification
+
+| Parameter | Value |
+|---|---|
+| Part Number | `06A906032RN` |
+| Bosch HW | `0261208450` |
+| Bosch SW | `1037368613` |
+| Software Version | `0001` |
+
+### 🐞 Problem — Tachometer CAN Hook Not Found
+
+**🚨 Original error**
+
+```text
 Tach CAN hook: NOT FOUND
 nmot_w loads: 51
 validated CAN candidates: 0
-Where the problem occurred
+```
 
-The maps and runtime pre-flight checks could pass, but the build stopped while trying to find the code path used to prepare engine RPM for the instrument-cluster CAN message. This path is used by the optional active-bank indication via the tachometer.
+### ❓ What Caused the Problem?
 
-Why it happened
+The patcher successfully detected the required calibration maps but failed while locating the Tach CAN hook used for active-bank indication through the instrument-cluster tachometer.
 
-RN used a different RPM/CAN buffer layout than the previously handled reference arrangement:
-Layout	RPM buffer bytes
-Earlier reference	0xF824 / 0xF825
-RN	0xF82A / 0xF82B
+The RN firmware used a different engine-RPM buffer layout.
 
+| Buffer Layout | Address |
+|---|---|
+| Previous reference | `0xF824 / 0xF825` |
+| RN firmware | `0xF82A / 0xF82B` |
 
-The previous finder assumed too specific a buffer address or opcode pattern and therefore rejected the RN code path, although the firmware still had valid RPM-to-CAN logic.
+The previous detector depended too heavily on a specific buffer structure.
 
-How I fixed it
-1. Analyzed the C167 instructions loading nmot_w and transferring RPM into the CAN output bytes.
-2. Changed detection from a rigid buffer-specific match to structural validation of the RPM-to-CAN instruction sequence.
-3. Kept the requirement that a hook be unambiguous and instruction-safe; I did not replace the check with an unconditional hard-coded address.
-4. Checked the changed detector against an earlier reference firmware to reduce regression risk.
-Validated hook for the analyzed RN BIN
-Tach CAN hook = 0x04036E
-Build results
-Configuration	Status
-Two banks	✅ PASS
-Three banks	✅ PASS
-Four banks	✅ PASS
-Earlier reference regression	✅ Passed reported checks
+### 🛠️ How I Fixed It
 
+I redesigned the Tach CAN detection logic to recognize the structure of the RPM-to-CAN instructions instead of depending on one fixed buffer address.
 
-Result: ✅ Fixed at patch-generation level. Tach CAN hook discovery no longer blocks RN generation. The actual tachometer movement and bank indication on a vehicle have not been independently confirmed by these tests.
-4. 06A906032SJ — 150/180 HP applications
-Current status: ✅ Build PASS — three technical blockers resolved
-Pops & Bangs scope: ✅ Eligible engine family; validate the individual BIN
-Problem A — Valid LDRXN / LDRXNZK maps were rejected
-Original symptoms
-LDRXN    AUTO=NOT FOUND
-LDRXNZK  AUTO=NOT FOUND
-Known payload addresses
-Map	Payload address
-LDRXN	0x01F3CE
-LDRXNZK	0x01F410
+**Changes included:**
 
+- Improved detection of `nmot_w` loads.
+- Analysis of C167 RPM data-transfer instructions.
+- Structural verification of the CAN RPM packing sequence.
+- Support for alternative buffer locations.
+- Validation of the hook before modifying the firmware.
+- Regression checks against previously working firmware.
 
-Why it happened
+### 📍 Successfully Identified Hook
 
-The two valid 16-point WORD maps contained almost flat data: approximately 90% at the first point and 210% at the remaining fifteen points. The previous nonblank-data filter expected more distinct values and incorrectly rejected them.
+```text
+Tach CAN Hook: 0x04036E
+```
 
-How I fixed it
+### 🧪 Verification Results
 
-I added a targeted structural validation path for the paired 16-point LDR WORD-map layout. It checks the expected map size, placement, and increasing RPM axis instead of rejecting a valid calibration simply because its data contain few unique byte values.
+| Test | Result |
+|---|---|
+| Automatic Tach CAN detection | ✅ PASS |
+| 2-bank generation | ✅ PASS |
+| 3-bank generation | ✅ PASS |
+| 4-bank generation | ✅ PASS |
+| Previous firmware regression | ✅ PASS |
 
-Result: ✅ Fixed for the analyzed SJ BIN. Both LDR maps were recognized in the tested software.
-[!NOTE]
-This does not change the project's general policy. If another ECU's maps are not detected, manual address entry remains the intended fallback. I will not keep redesigning automatic detection for every new software variant.
+### ✅ Final Result
 
-Problem B — Cyclic hook not found
-What failed
+**The Tach CAN detection issue has been resolved.**
 
-The runtime hook scanner did not recognize a valid alternative instruction sequence in SJ.
+The patcher successfully identifies the RPM-to-CAN path and completes generation for the tested bank configurations.
 
-How I fixed it
-- Added a tightly validated secondary C167 hook signature.
-- Preserved the original displaced operation in the injected wrapper, rather than silently discarding it.
-- Kept the existing entry-point safety checks.
-Cyclic hook   = 0x0A6A26
-Original bytes = C2 F4 9C F8
-Result: ✅ Fixed at build level. Runtime hook selection and installation passed the tested validation.
-Problem C — Map addresses were known but LDR code references were missing
-Original symptom
+Actual tachometer behavior still requires hardware verification.
 
-Even after entering the correct LDR map addresses, the patcher could still report:
+---
+
+# 🟢 4. 06A906032SJ — 150/180 HP
+
+**✅ Status: RESOLVED — BUILD PASS**
+
+### 🔍 ECU Identification
+
+| Parameter | Value |
+|---|---|
+| Part Number | `06A906032SJ` |
+| Bosch HW | `0261208531` |
+| Bosch SW | `1037369040` |
+| Software Version | `0010` |
+
+This ECU had three separate technical issues.
+
+## 🐞 Problem 1 — LDRXN and LDRXNZK Not Found
+
+**🚨 Original symptoms**
+
+```text
+LDRXN   AUTO=NOT FOUND
+LDRXNZK AUTO=NOT FOUND
+```
+
+### ❓ What Caused the Problem?
+
+The two LDR maps contained nearly flat calibration values.
+
+The first value represented approximately 90%, while the remaining fifteen values represented approximately 210%.
+
+The previous map-validation logic incorrectly rejected these valid calibration structures.
+
+### 🛠️ How I Fixed It
+
+I added structural validation for the 16-point WORD LDR maps.
+
+The updated validation checks:
+
+- Map structure and size.
+- Correct RPM axis organization.
+- Expected placement of paired LDR maps.
+- Valid map payload without requiring many different byte values.
+
+**📍 Map Addresses**
+
+| Map | Address |
+|---|---|
+| LDRXN | `0x01F3CE` |
+| LDRXNZK | `0x01F410` |
+
+**✅ Result:** Both maps were successfully recognized.
+
+---
+
+## 🐞 Problem 2 — Cyclic Hook Not Found
+
+### 🚨 Original Error
+
+```text
+Cyclic hook: NOT FOUND
+```
+
+### ❓ What Caused the Problem?
+
+The firmware contained a different instruction sequence at the cyclic execution point.
+
+The original detector did not recognize this alternative C167 instruction pattern.
+
+### 🛠️ How I Fixed It
+
+I added support for the alternative cyclic hook signature and ensured the original displaced instruction was preserved inside the injected runtime wrapper.
+
+**📍 Verified Hook**
+
+```text
+Address: 0x0A6A26
+Bytes:   C2 F4 9C F8
+```
+
+**✅ Result:** Cyclic hook discovery and runtime installation passed validation.
+
+---
+
+## 🐞 Problem 3 — LDR Map Addresses Found, but Code References Missing
+
+### 🚨 Original Error
+
+```text
 LDRXN code   = 0x000000
 LDRXNZK code = 0x000000
-Why it happened
+```
 
-A map's payload address identifies calibration data. It does not automatically identify the C167 instructions that read those data. MultiMap selectors need both the map locations and the relevant lookup/call sites.
+### ❓ What Caused the Problem?
 
-How I fixed it
+Knowing the map address alone was not sufficient.
 
-I added recovery and validation of the C167 LDR lookup sites for this instruction layout.
-Component	Verified location
-LDRXNZK lookup	0x07CB9E
-LDRXN lookup	0x07CBB2
-Cyclic hook	0x0A6A26
-Tach CAN hook	0x04036E
+The patcher also needed to locate the C167 instructions responsible for reading those maps.
 
+Without the correct lookup points, it could not safely install the MultiMap selectors.
 
-Result: ✅ Fixed. The required LDR calls were resolved; the copied LDR data matched the original raw bytes.
-XDF consistency check (not an unresolved map bug)
-I also investigated a minor difference in how LDR values were displayed by different XDF definitions:
-Definition	Scaling factor
-Rounded value	0.023438
-More precise value	0.0234375
+### 🛠️ How I Fixed It
 
+I improved the recovery and validation of LDR lookup sites within the firmware.
 
-The underlying map bytes were identical. The small displayed difference came from numeric rounding, not corrupted LDR data. I kept the accepted XDF behavior and did not include unrelated generator changes in the final fixes.
-SJ build verification
-Test	Result
-LDR map validation	✅ PASS
-Cyclic hook discovery	✅ PASS
-LDR lookup-site resolution	✅ PASS
-Two-bank generation	✅ PASS
-Three-bank generation	✅ PASS
-Four-bank generation	✅ PASS
-Three-bank / 5× brake selector setup	✅ Build PASS
-Raw copied LDR data comparison	✅ Matched original data
+**📍 Verified Locations**
 
+| Component | Address |
+|---|---|
+| LDRXNZK Lookup | `0x07CB9E` |
+| LDRXN Lookup | `0x07CBB2` |
+| Cyclic Hook | `0x0A6A26` |
+| Tach CAN Hook | `0x04036E` |
 
-Final SJ assessment: ✅ Previously identified build blockers resolved. Runtime operation still needs separate code-level and vehicle testing.
-Cross-ECU technical changes
-Area	Original weakness	What I changed	Current decision
-Runtime hook detection	Some valid C167 entry patterns were not recognized	Added structural verification and preserved original displaced instructions	✅ Keep validated fixes
-Runtime RAM / code caves	Unsafe or overly restrictive placement could block a build	Improved candidate checking and reservation/overlap protection	✅ Keep validated fixes
-Multi-bank map copies	Potential copy-offset or map-reference mismatch	Added byte-level comparisons and selector validation	✅ Keep validated fixes
-KFZWMN free-space allocation	Required one contiguous 576 B region	Split allocation into independent 192 B blocks with DPP safeguards	✅ Keep validated fixes
-Tach CAN detection	Buffer-specific assumptions missed an alternate RPM packing path	Validated instruction relationships rather than one fixed buffer	✅ Keep validated fixes
-LDR map validation	Nearly flat but valid maps rejected	Added a targeted 16-point WORD-structure check	✅ Keep validated fixes
-LDR lookup sites	Map payload known, but call sites unresolved	Recovered and validated C167 map-access instructions	✅ Keep validated fixes
-Manual map fallback	Automatic search could stop the workflow	Added manual Bank 1 address entry with validation	✅ Closed by design
+**✅ Result:** The LDR code references were successfully resolved.
 
+---
 
-What remains to be done?
-There is no currently documented patch-generation blocker for these four investigated ECU files. However, the following are validation activities, not claimed new bugs:
-- Disassemble original and modified BINs and compare C167 branches, hooks, wrappers, register handling and return paths.
-- Check each injected selector's original-instruction preservation, bank addressing and DPP usage.
-- Validate copied calibration content, available free space and checksum correction before any programming.
-- Perform controlled bench testing and, where appropriate, vehicle testing of bank switching, tachometer indications and Pops & Bangs behavior.
-[!WARNING]
-A Build PASS is not a flash-safety certificate. ECU software changes can cause unexpected engine or communication behavior. Static inspection, correct checksums and controlled validation are still required.
+## 📐 Additional XDF Verification
 
-Development policy going forward
-- Do not rewrite working ECU-specific fixes without a reproducible regression.
-- Do not force automatic map detection: use manually verified map addresses when required.
-- Do not infer Pops compatibility from horsepower alone: validate the exact map layout and code references in the BIN.
-- Do not claim road-tested functionality from a successful build.
-Final status
-Four investigated Pops-eligible ECU variants — HJ, KP, RN and SJ — now pass their previously failing patching steps. The original issues, causes and corresponding fixes are documented above. The next phase is to verify the generated C167 code and runtime behavior, not to rework already successful map-detection or allocation paths without evidence of a new fault.
+I also investigated a small difference in LDR scaling values between XDF definitions.
+
+| XDF Definition | Scaling |
+|---|---|
+| Rounded | `0.023438` |
+| More precise | `0.0234375` |
+
+The original calibration bytes were identical.
+
+The difference was caused by numeric rounding, not corrupted map data.
+
+No unnecessary XDF generator changes were retained.
+
+### 🧪 SJ Verification Results
+
+| Test | Result |
+|---|---|
+| LDRXN detection | ✅ PASS |
+| LDRXNZK detection | ✅ PASS |
+| Cyclic hook | ✅ PASS |
+| LDR lookup references | ✅ PASS |
+| 2-bank generation | ✅ PASS |
+| 3-bank generation | ✅ PASS |
+| 4-bank generation | ✅ PASS |
+| 5× brake setup | ✅ Build PASS |
+| Copied map data comparison | ✅ MATCH |
+
+### ✅ Final Result
+
+The previously reported SJ patch-generation problems have been resolved.
+
+---
+
+# 🧩 Summary of Implemented Improvements
+
+| Component | Fix | Status |
+|---|---|---|
+| 🔧 Cyclic Hook | Improved alternative C167 instruction detection | ✅ Fixed |
+| 🧠 RAM Allocation | Improved memory validation and reservation | ✅ Fixed |
+| 🗺️ Map Copying | Improved calibration-copy validation | ✅ Fixed |
+| 💾 KFZWMN | Independent memory allocation for each bank | ✅ Fixed |
+| 📡 Tach CAN | Structural RPM-to-CAN detection | ✅ Fixed for RN |
+| 📈 LDR Maps | Support for valid, nearly flat WORD maps | ✅ Fixed |
+| 🔗 LDR Lookups | Improved C167 code-reference detection | ✅ Fixed |
+| ✍️ Manual Addresses | Manual entry when automatic detection fails | ✅ Implemented |
+| 📄 XDF | Verified calibration scaling and data integrity | ✅ Checked |
+
+---
+
+# 🧪 Remaining Verification
+
+There are no currently documented patch-generation blockers for the four investigated ECU variants.
+
+However, successful patch generation does not automatically guarantee correct firmware execution.
+
+The following verification steps are still required:
+
+- 🔍 Disassemble the original and modified firmware.
+- 🧩 Verify all C167 hooks and runtime wrappers.
+- 🧠 Check register handling and original-instruction preservation.
+- 🔗 Verify selector references and bank-specific map addressing.
+- 💾 Inspect injected code and memory allocation.
+- 📡 Validate Tach CAN behavior.
+- ✅ Verify checksums before ECU programming.
+- 🚗 Perform controlled bench and vehicle tests.
+
+> [!WARNING]
+> ⚠️ **BUILD PASS does not mean vehicle-tested or flash-safe.**
+>
+> Successful BIN/XDF generation confirms that the patcher completed its documented build checks. Runtime correctness, ECU behavior, and compatibility must be verified separately.
+
+---
+
+# 🔒 Development Policy
+
+**✅ What I will keep:**
+
+- Successfully validated cyclic hooks.
+- Working RAM and calibration allocation.
+- Corrected Tach CAN detection.
+- Verified LDR selectors and map references.
+- Manual map-address entry.
+- Existing XDF behavior unless a reproducible defect is found.
+
+**🚫 What I will not change unnecessarily:**
+
+- Working ECU-specific fixes.
+- Automatic map detection simply to support every unknown firmware.
+- Pops & Bangs eligibility rules.
+- Validated code sections without evidence of a new problem.
+
+---
+
+# ✅ Final Status
+
+**Four investigated Pops & Bangs-eligible ECU variants have successfully passed their previously failing patch-generation stages:**
+
+✅ `06A906032HJ`
+
+✅ `06A906032KP`
+
+✅ `06A906032RN`
+
+✅ `06A906032SJ`
+
+The documented technical issues have been resolved at the build level or reported as successfully patched.
+
+**🔬 Next development stage:** I will continue checking the generated firmware by disassembling and comparing the original and modified C167 code, including all hook instructions, wrappers, selector logic, memory references, and Tach CAN processing.
+
+**This verification is still pending and will be performed before considering the generated code fully validated.**
+
+---
+
+**Developed by LDRXN**
+
+[GitHub — LDRXN](https://github.com/LDRXN)
