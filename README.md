@@ -1,3 +1,16 @@
+
+<div align="center">
+
+## 📚 Select Documentation
+
+[📖 README.md](README.md) &nbsp;&nbsp; | &nbsp;&nbsp; [🐛 Bugs and Fixes.md](Bugs%20and%20Fixes.md)
+
+</div>
+
+---
+
+
+
 # 🔀 Bosch ME7.5 MultiMap / MapSwitch + Pops & Bangs CMD
 
 ### Automatic Map Detection • 2–4 Banks • Cruise / Brake Switching • Pops & Bangs Maps • RPM Bank Indication • Automatic XDF Generation
