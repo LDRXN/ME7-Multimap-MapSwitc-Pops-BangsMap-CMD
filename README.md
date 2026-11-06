@@ -21,6 +21,52 @@ The application automatically analyzes the ECU binary, detects the required cali
 
 **Build MultiMap. Configure Pops & Bangs separately for every bank. Switch maps directly from the vehicle controls.**
 
+
+## ⚠️ Important — Pops & Bangs Version Compatibility
+
+**This version is specifically designed and recommended for Bosch ME7.5 1MB ECUs from the following factory engine power variants:**
+
+- ✅ **150 HP**
+- ✅ **180 HP**
+- ✅ **210 HP**
+- ✅ **225 HP**
+
+Unlike the standard MultiMap version, this edition additionally detects and copies the calibration maps responsible for **Pops & Bangs**, allowing them to be configured independently for each MultiMap bank.
+
+### 💥 Additional Pops & Bangs Maps
+
+The following maps are included:
+
+- **KFZWMN**
+- **KFNWEGM**
+- **KFTVSA**
+- **KFTVSAKAT**
+
+### 🔎 Automatic Detection & Manual Map Addresses
+
+The program includes an automatic map finder that attempts to locate all required MultiMap and Pops & Bangs calibration maps.
+
+**A manual map address entry feature has also been added.**
+
+If the automatic finder cannot locate or validate a required map, the user can manually enter its address.
+
+This provides an alternative for ECU software versions where automatic detection is unsuccessful.
+
+### ⚠️ Other Engine Power Variants (e.g. 163 HP)
+
+Users may also attempt to use this version with other Bosch ME7.5 1MB engine variants, such as **163 HP**.
+
+However, **correct detection and identification of Pops & Bangs maps cannot be guaranteed** for these ECU software versions.
+
+Manual address entry may be required, and all map locations must be verified before generating or flashing modified firmware.
+
+**LDRXN recommends using this Pops & Bangs edition primarily with the factory 150, 180, 210 and 225 HP variants.**
+
+For other engine variants, the **standard MultiMap / MapSwitch version without Pops & Bangs maps** is recommended.
+
+**Important:** Manual address entry does not guarantee firmware compatibility. Incorrect map addresses can produce invalid calibration data or unsafe ECU behavior.
+
+
 ---
 
 ## ✨ Features
